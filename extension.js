@@ -616,7 +616,7 @@ const ClipboardIndicator = GObject.registerClass({
         // CLICK fix for Paste on Select: clicking behaves like Enter
         menuItem.connect('activate', () => {
             if (PASTE_ON_SELECT) {
-                this.#pasteItem(menuItem);
+                this.#pasteItem(menuItem, false);
                 this._onMenuItemSelectedAndMenuClose(menuItem, false);
             } else {
                 this._onMenuItemSelectedAndMenuClose(menuItem, true);
@@ -671,7 +671,7 @@ const ClipboardIndicator = GObject.registerClass({
                 case Clutter.KEY_KP_Enter:
                 case Clutter.KEY_Return:
                     if (PASTE_ON_SELECT) {
-                        this.#pasteItem(menuItem);
+                        this.#pasteItem(menuItem, false);
                         this._onMenuItemSelectedAndMenuClose(menuItem, false);
                     } else {
                         this._onMenuItemSelectedAndMenuClose(menuItem, true);
@@ -1625,10 +1625,12 @@ const ClipboardIndicator = GObject.registerClass({
 
 
 
-    #pasteItem (menuItem) {
+    #pasteItem (menuItem, restoreSelection = true) {
         this.menu.close();
         const currentlySelected = this._getCurrentlySelectedItem();
-        this.preventIndicatorUpdate = true;
+        if (restoreSelection) {
+            this.preventIndicatorUpdate = true;
+        }
         this.#updateClipboard(menuItem.entry);
         this._pastingKeypressTimeout = setTimeout(() => {
             if (this.keyboard.purpose === Clutter.InputContentPurpose.TERMINAL) {
@@ -1647,9 +1649,11 @@ const ClipboardIndicator = GObject.registerClass({
             }
 
             this._pastingResetTimeout = setTimeout(() => {
-                this.preventIndicatorUpdate = false;
-                if (currentlySelected && currentlySelected.entry)
-                    this.#updateClipboard(currentlySelected.entry);
+                if (restoreSelection) {
+                    this.preventIndicatorUpdate = false;
+                    if (currentlySelected && currentlySelected.entry)
+                        this.#updateClipboard(currentlySelected.entry);
+                }
             }, 50);
         }, 50);
     }
