@@ -1634,18 +1634,20 @@ const ClipboardIndicator = GObject.registerClass({
         this.#updateClipboard(menuItem.entry);
         this._pastingKeypressTimeout = setTimeout(() => {
             if (this.keyboard.purpose === Clutter.InputContentPurpose.TERMINAL) {
+                // Terminal uses Ctrl+Shift+V to paste from CLIPBOARD
                 this.keyboard.press(Clutter.KEY_Control_L);
                 this.keyboard.press(Clutter.KEY_Shift_L);
-                this.keyboard.press(Clutter.KEY_Insert);
-                this.keyboard.release(Clutter.KEY_Insert);
+                this.keyboard.press(Clutter.KEY_v);
+                this.keyboard.release(Clutter.KEY_v);
                 this.keyboard.release(Clutter.KEY_Shift_L);
                 this.keyboard.release(Clutter.KEY_Control_L);
             }
             else {
-                this.keyboard.press(Clutter.KEY_Shift_L);
-                this.keyboard.press(Clutter.KEY_Insert);
-                this.keyboard.release(Clutter.KEY_Insert);
-                this.keyboard.release(Clutter.KEY_Shift_L);
+                // Normal apps use Ctrl+V to paste from CLIPBOARD
+                this.keyboard.press(Clutter.KEY_Control_L);
+                this.keyboard.press(Clutter.KEY_v);
+                this.keyboard.release(Clutter.KEY_v);
+                this.keyboard.release(Clutter.KEY_Control_L);
             }
 
             this._pastingResetTimeout = setTimeout(() => {
