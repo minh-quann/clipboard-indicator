@@ -1632,32 +1632,22 @@ const ClipboardIndicator = GObject.registerClass({
             this.preventIndicatorUpdate = true;
         }
         this.#updateClipboard(menuItem.entry);
+        // Wait 200ms for menu to fully close and focus to transfer to target app
         this._pastingKeypressTimeout = setTimeout(() => {
-            if (this.keyboard.purpose === Clutter.InputContentPurpose.TERMINAL) {
-                // Terminal uses Ctrl+Shift+V to paste from CLIPBOARD
-                this.keyboard.press(Clutter.KEY_Control_L);
-                this.keyboard.press(Clutter.KEY_Shift_L);
-                this.keyboard.press(Clutter.KEY_v);
-                this.keyboard.release(Clutter.KEY_v);
-                this.keyboard.release(Clutter.KEY_Shift_L);
-                this.keyboard.release(Clutter.KEY_Control_L);
-            }
-            else {
-                // Normal apps use Ctrl+V to paste from CLIPBOARD
-                this.keyboard.press(Clutter.KEY_Control_L);
-                this.keyboard.press(Clutter.KEY_v);
-                this.keyboard.release(Clutter.KEY_v);
-                this.keyboard.release(Clutter.KEY_Control_L);
-            }
+            const modifiers = this.keyboard.purpose === Clutter.InputContentPurpose.TERMINAL
+                ? [Clutter.KEY_Control_L, Clutter.KEY_Shift_L]
+                : [Clutter.KEY_Control_L];
 
-            this._pastingResetTimeout = setTimeout(() => {
+            // Use sendCombo to space key events across main loop iterations,
+            // preventing Wayland from batching them and causing 'v' key repeat
+            this.keyboard.sendCombo(modifiers, Clutter.KEY_v, () => {
                 if (restoreSelection) {
                     this.preventIndicatorUpdate = false;
                     if (currentlySelected && currentlySelected.entry)
                         this.#updateClipboard(currentlySelected.entry);
                 }
-            }, 50);
-        }, 50);
+            });
+        }, 200);
     }
 
     #showImagePreview (entry, onClose = null) {
