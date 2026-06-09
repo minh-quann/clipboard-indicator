@@ -112,10 +112,10 @@ const ClipboardIndicator = GObject.registerClass({
         this._cursorActor = new Clutter.Actor({ opacity: 0, width: 1, height: 1 });
         Main.uiGroup.add_child(this._cursorActor);
 
-        this.menu.connect('open-state-changed', (menu, isOpen) => {
+        this.menu.connectObject('open-state-changed', (menu, isOpen) => {
             if (!isOpen)
                 this.menu.sourceActor = this;
-        });
+        }, this);
 
         this.extension = extension;
         this._destroyed = false;
@@ -245,14 +245,14 @@ const ClipboardIndicator = GObject.registerClass({
             primary_icon: new St.Icon({ icon_name: 'edit-find-symbolic' })
         });
 
-        this.searchEntry.get_clutter_text().connect(
+        this.searchEntry.get_clutter_text().connectObject(
             'text-changed',
             this._onSearchTextChanged.bind(this)
-        );
+        , this);
 
         this._entryItem.add_child(this.searchEntry);
 
-        this.menu.connect('open-state-changed', (self, open) => {
+        this.menu.connectObject('open-state-changed', (self, open) => {
             this._setFocusOnOpenTimeout = setTimeout(() => {
                 if (!open) return;
 
@@ -270,7 +270,7 @@ const ClipboardIndicator = GObject.registerClass({
                     global.stage.set_key_focus(this.privateModeMenuItem.actor);
                 }
             }, 50);
-        });
+        }, this);
 
         // Create menu sections for items
         // Favorites
@@ -362,15 +362,15 @@ const ClipboardIndicator = GObject.registerClass({
             y_align: Clutter.ActorAlign.CENTER,
         });
 
-        this.resetTimerButton.connect('clicked', () => {
+        this.resetTimerButton.connectObject('clicked', () => {
             this._scheduleNextHistoryClear();
-        });
+        }, this);
 
         timerBox.add_child(this.timerLabel);
         timerBox.add_child(this.resetTimerButton);
         this.clearMenuItem.add_child(timerBox);
 
-        this.clearMenuItem.connect('activate', this._removeAll.bind(this));
+        this.clearMenuItem.connectObject('activate', this._removeAll.bind(this), this);
 
         // Add 'Settings' menu item to open settings
         this.settingsMenuItem = new PopupMenu.PopupMenuItem(_('Settings'));
@@ -382,7 +382,7 @@ const ClipboardIndicator = GObject.registerClass({
             }),
             0
         );
-        this.settingsMenuItem.connect('activate', this._openSettings.bind(this));
+        this.settingsMenuItem.connectObject('activate', this._openSettings.bind(this), this);
 
         // Empty state section
         this.emptyStateSection = new St.BoxLayout({
@@ -628,7 +628,7 @@ const ClipboardIndicator = GObject.registerClass({
                 this.favoritesScrollView : this.historyScrollView;
             AnimationUtils.ensureActorVisibleInScrollView(viewToScroll, menuItem);
         });
-        menuItem.actor.connect('key-press-event', (actor, event) => {
+        menuItem.actor.connectObject('key-press-event', (actor, event) => {
             switch (event.get_key_symbol()) {
                 case Clutter.KEY_Delete:
                     if (menuItem.entry.isFavorite()) {
@@ -712,7 +712,7 @@ const ClipboardIndicator = GObject.registerClass({
                 x_expand: false,
                 y_expand: true,
             });
-            menuItem.imagePreviewBtn.connect('clicked', () => this.#showImagePreview(entry));
+            menuItem.imagePreviewBtn.connectObject('clicked', () => this.#showImagePreview(entry), menuItem);
             menuItem.actor.add_child(menuItem.imagePreviewBtn);
         }
 
@@ -730,7 +730,7 @@ const ClipboardIndicator = GObject.registerClass({
                 x_expand: false,
                 y_expand: true,
             });
-            menuItem.editBtn.connect('clicked', () => this.#showEditDialog(menuItem));
+            menuItem.editBtn.connectObject('clicked', () => this.#showEditDialog(menuItem), menuItem);
             menuItem.actor.add_child(menuItem.editBtn);
         }
 
@@ -769,9 +769,9 @@ const ClipboardIndicator = GObject.registerClass({
             visible: PASTE_BUTTON
         });
 
-        menuItem.pasteBtn.connect('clicked',
-            () => this.#pasteItem(menuItem)
-        );
+        menuItem.pasteBtn.connectObject('clicked',
+            () => this.#pasteItem(menuItem),
+        menuItem);
 
         menuItem.actor.add_child(menuItem.pasteBtn);
 
@@ -789,7 +789,7 @@ const ClipboardIndicator = GObject.registerClass({
             x_expand: false,
             y_expand: true,
         });
-        menuItem.tagBtn.connect('clicked', () => this.#showTagDialog(menuItem));
+        menuItem.tagBtn.connectObject('clicked', () => this.#showTagDialog(menuItem), menuItem);
         menuItem.actor.add_child(menuItem.tagBtn);
 
         // Delete button
@@ -1044,8 +1044,8 @@ const ClipboardIndicator = GObject.registerClass({
             }
         }
         catch (e) {
-            console.error('Clipboard Indicator: Failed to refresh indicator');
-            console.error(e);
+            console.debug('Clipboard Indicator: Failed to refresh indicator');
+            console.debug(e);
         }
         finally {
             this.#refreshInProgress = false;
@@ -1245,9 +1245,9 @@ const ClipboardIndicator = GObject.registerClass({
                 'icon-name': INDICATOR_ICON
             });
 
-            this._notifSource.connect('destroy', () => {
+            this._notifSource.connectObject('destroy', () => {
                 this._notifSource = null;
-            });
+            }, this);
 
             Main.messageTray.add(this._notifSource);
         }
@@ -1352,7 +1352,7 @@ const ClipboardIndicator = GObject.registerClass({
             this.#getClipboardContent().then(entry => {
                 if (!entry) return;
                 this.#updateIndicatorContent(entry);
-            }).catch(e => console.error(e));
+            }).catch(e => console.debug(e));
 
             this.hbox.remove_style_class_name('private-mode');
             this.#showElements();
@@ -1453,8 +1453,8 @@ const ClipboardIndicator = GObject.registerClass({
             // Respect UI toggles
             this.#showElements();
         } catch (e) {
-            console.error('Clipboard Indicator: Failed to update registry');
-            console.error(e);
+            console.debug('Clipboard Indicator: Failed to update registry');
+            console.debug(e);
         }
     }
 
@@ -1732,8 +1732,8 @@ const ClipboardIndicator = GObject.registerClass({
 
             bin.set_child(actor);
         }).catch(e => {
-            console.error('Clipboard Indicator: failed to load image preview');
-            console.error(e);
+            console.debug('Clipboard Indicator: failed to load image preview');
+            console.debug(e);
         });
     }
 
